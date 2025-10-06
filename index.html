@@ -14,7 +14,15 @@
         }
         @keyframes fadeInSlide { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Poppins', sans-serif; background-color: var(--color-fondo); color: var(--color-principal); line-height: 1.6; padding: 20px; min-height: 100vh; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: var(--color-fondo); 
+            color: var(--color-principal); 
+            line-height: 1.6; 
+            padding: 20px; 
+            min-height: 100vh; 
+            overflow-x: hidden; /* Defensa contra desbordamiento horizontal */
+        }
         header { text-align: center; padding: 30px 0; margin-bottom: 30px; }
         h1 { color: var(--color-principal); font-size: 2.5em; font-weight: 700; margin-bottom: 0; }
         h2 { color: var(--color-principal); font-size: 1.4em; font-weight: 400; margin-top: 5px; opacity: 0.8; }
@@ -24,12 +32,33 @@
         .registro-container { animation-delay: 0.1s; }
         .historial-container { animation-delay: 0.2s; }
         .card:hover { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1); }
-        #transaccion-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        /* FIX RESPONSIVE: FORMULARIO (Mobile First: 1 Columna) */
+        #transaccion-form { 
+            display: grid; 
+            grid-template-columns: 1fr; /* Una sola columna para móviles */
+            gap: 15px; 
+        }
         .form-group { display: flex; flex-direction: column; }
         label { margin-bottom: 5px; font-weight: 400; color: var(--color-principal); font-size: 0.9em; }
         input, select { padding: 10px; border: 1px solid var(--color-borde); border-radius: 6px; font-size: 1em; color: var(--color-principal); transition: border-color var(--transicion-rapida); }
         input:focus, select:focus { border-color: var(--color-principal); outline: none; box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.05); }
-        .btn-agregar { grid-column: 1 / 3; padding: 12px; background-color: var(--color-principal); color: white; border: none; border-radius: 8px; font-size: 1.05em; font-weight: 600; cursor: pointer; transition: background-color var(--transicion-rapida), transform 0.1s; }
+        
+        /* Elementos que deben ocupar todo el ancho en móvil (1 columna) */
+        .form-group.select-group { grid-column: 1 / 2; }
+        #cuotas-fields { grid-column: 1 / 2; }
+        .btn-agregar { 
+            grid-column: 1 / 2; 
+            padding: 12px; 
+            background-color: var(--color-principal); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1.05em; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: background-color var(--transicion-rapida), transform 0.1s; 
+        }
         .btn-agregar:hover { background-color: #555; transform: translateY(-2px); box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); }
         .checkbox-group { display: flex; align-items: center; gap: 10px; }
         .checkbox-group label { margin-bottom: 0; flex-grow: 1; }
@@ -42,8 +71,8 @@
         .mes-actual-display { font-size: 0.85em; color: var(--color-subtle); font-weight: 600; text-transform: uppercase; }
         #filtro-deudas { width: 100%; max-width: 300px; padding: 10px; font-weight: 600; }
         .saldo-neto-info { font-size: 1.1em; font-weight: 600; padding: 12px; margin-bottom: 15px; border-radius: 8px; text-align: center; width: 100%; transition: background-color 0.5s; }
-        .nahu-debe { color: var(--color-cobro); background-color: #f7e6e8; } /* Nahu debe a Flor (Rojo) */
-        .flor-debe { color: var(--color-pago); background-color: #e6f7ef; } /* Flor debe a Nahu (Verde) */
+        .nahu-debe { color: var(--color-cobro); background-color: #f7e6e8; } 
+        .flor-debe { color: var(--color-pago); background-color: #e6f7ef; } 
         .a-mano { color: var(--color-principal); background-color: #f0f0f0; }
         .transaccion-list { list-style: none; padding: 0; }
         .transaccion-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; transition: background-color var(--transicion-rapida); }
@@ -74,12 +103,23 @@
             border-radius: 8px;
         }
         
+        /* MEDIA QUERY: Desktop/Tablet (>= 768px) */
         @media (min-width: 768px) {
             main { grid-template-columns: 2fr 1fr; }
             .registro-container { grid-column: 2 / 3; grid-row: 1 / 3; }
             .historial-container { grid-column: 1 / 2; grid-row: 1 / 3; }
-            #transaccion-form { grid-template-columns: 1fr 1fr; gap: 15px; } /* Ajuste */
+            
+            /* Formulario vuelve a 2 columnas */
+            #transaccion-form { 
+                grid-template-columns: 1fr 1fr; 
+                gap: 20px;
+            } 
+            
+            /* Estos elementos ocupan 2 columnas en Desktop */
+            .form-group.select-group { grid-column: 1 / 3; }
+            #cuotas-fields { grid-column: 1 / 3; }
             .btn-agregar { grid-column: 1 / 3; }
+            
             .menu-deudas-header { flex-direction: column; align-items: center; }
             #filtro-deudas { width: 250px; }
         }
@@ -135,7 +175,7 @@
                         <input type="text" id="descripcion" required placeholder="Ej: Vuelo Bariloche">
                     </div>
                     
-                    <div class="form-group select-group" style="grid-column: 1 / 3;">
+                    <div class="form-group select-group">
                         <label for="pagador">¿Quién pagó el gasto?</label>
                         <select id="pagador" required>
                             <option value="Nahu">Nahu</option>
@@ -144,16 +184,16 @@
                     </div>
 
                     <div class="form-group checkbox-group">
-                        <label for="paga100">Gasto Individual</label>
+                        <label for="paga100">¿Gasto Individual?</label>
                         <input type="checkbox" id="paga100"> 
                     </div>
                     
                     <div class="form-group checkbox-group">
-                        <label for="esCuota">Cuotas</label>
+                        <label for="esCuota">¿Es un gasto a Cuotas?</label>
                         <input type="checkbox" id="esCuota"> 
                     </div>
 
-                    <div id="cuotas-fields" style="display: none; grid-column: 1 / 3; padding: 10px; border: 1px dashed #ddd; border-radius: 8px;">
+                    <div id="cuotas-fields" style="display: none; padding: 10px; border: 1px dashed #ddd; border-radius: 8px;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label for="cuotasPendientes">Cuotas restantes (incluyendo la actual):</label>
                             <input type="number" id="cuotasPendientes" min="1" value="1" placeholder="Ej: 3">
@@ -200,7 +240,7 @@
 
         // Lista de Animaciones
         const ANIMACIONES_GASTO = [
-            "https://media.giphy.com/media/94EQmVHkveNck/giphy.gif" // El GIF que elegiste
+            "https://media.giphy.com/media/94EQmVHkveNck/giphy.gif"
         ];
 
         const transaccionList = document.getElementById('transaccion-list');
@@ -214,7 +254,7 @@
         const filtroMesSelect = document.getElementById('filtro-mes');
         const mesActualDisplay = document.getElementById('mes-actual-display');
         const esCuotaCheckbox = document.getElementById('esCuota');
-        const paga100Checkbox = document.getElementById('paga100'); // NUEVA VARIABLE
+        const paga100Checkbox = document.getElementById('paga100'); 
         const cuotasFieldsDiv = document.getElementById('cuotas-fields');
         const cuotasPendientesInput = document.getElementById('cuotasPendientes');
 
@@ -297,7 +337,7 @@
             }
         }
 
-        // --- CÁLCULO MENSUAL (ACTUALIZADO PARA 100%) ---
+        // --- CÁLCULO MENSUAL ---
 
         function calcularSaldoNetoTotal(transaccionArray) {
             let nahuDeboAFlor = 0;
@@ -388,7 +428,7 @@
         }
 
 
-        // --- RENDERIZADO DE LA VISTA (ACTUALIZADO PARA 100%) ---
+        // --- RENDERIZADO DE LA VISTA ---
 
         function renderizarTransacciones() {
             populateMonthFilter();
@@ -422,7 +462,6 @@
             }
 
             transaccionesFiltradas.forEach(t => {
-                // Cálculo de monto a deber para la vista
                 const montoADeber = t.paga100 ? t.monto : t.monto / 2;
                 
                 let deudor, pagador;
@@ -443,9 +482,8 @@
                 const fecha = t.fecha.toDate ? t.fecha.toDate().toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : 'N/A';
                 const cuotasInfo = t.esCuota ? ` (${t.cuotasPendientes} cuota${t.cuotasPendientes !== 1 ? 's' : ''} restantes)` : '';
                 
-                // Texto de detalle modificado
                 const debeTexto = t.paga100 ? 
-                    `${deudor} debe el TOTAL.` : 
+                    `${deudor} debe el TOTAL (Gasto Individual).` : 
                     `${deudor} debe su mitad.`;
 
                 const item = document.createElement('li');
@@ -475,7 +513,7 @@
             const descripcion = document.getElementById('descripcion').value.trim();
             const pagador = document.getElementById('pagador').value;
             const esCuota = esCuotaCheckbox.checked;
-            const paga100 = paga100Checkbox.checked; // OBTENIENDO NUEVO VALOR
+            const paga100 = paga100Checkbox.checked; 
             const cuotasPendientes = esCuota ? parseInt(cuotasPendientesInput.value, 10) : 1;
             
             if (isNaN(monto) || monto <= 0 || !descripcion) {
@@ -492,7 +530,7 @@
                 descripcion: descripcion,
                 pagador: pagador,
                 esCuota: esCuota,
-                paga100: paga100, // GUARDANDO NUEVO VALOR
+                paga100: paga100,
                 cuotasPendientes: cuotasPendientes,
                 fecha: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -535,4 +573,3 @@
     </script>
 </body>
 </html>
-
