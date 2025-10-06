@@ -59,10 +59,10 @@
 
         /* --- Estilos para la Animación --- */
         #animacion-container {
-            display: none; /* Oculto por defecto */
+            display: none;
             text-align: center;
             padding: 40px 10px;
-            background: var(--color-tarjeta); /* Usamos el color de la tarjeta para que se vea limpio */
+            background: var(--color-tarjeta);
             border-radius: 12px;
             box-shadow: var(--sombra-suave);
             transition: opacity 0.3s;
@@ -78,8 +78,8 @@
             main { grid-template-columns: 2fr 1fr; }
             .registro-container { grid-column: 2 / 3; grid-row: 1 / 3; }
             .historial-container { grid-column: 1 / 2; grid-row: 1 / 3; }
-            #transaccion-form { grid-template-columns: 1fr; gap: 20px; }
-            .btn-agregar { grid-column: 1 / 2; }
+            #transaccion-form { grid-template-columns: 1fr 1fr; gap: 15px; } /* Ajuste */
+            .btn-agregar { grid-column: 1 / 3; }
             .menu-deudas-header { flex-direction: column; align-items: center; }
             #filtro-deudas { width: 250px; }
         }
@@ -135,12 +135,17 @@
                         <input type="text" id="descripcion" required placeholder="Ej: Vuelo Bariloche">
                     </div>
                     
-                    <div class="form-group select-group">
+                    <div class="form-group select-group" style="grid-column: 1 / 3;">
                         <label for="pagador">¿Quién pagó el gasto?</label>
                         <select id="pagador" required>
                             <option value="Nahu">Nahu</option>
                             <option value="Flor">Flor</option>
                         </select>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label for="paga100">¿Paga 100% la otra persona?</label>
+                        <input type="checkbox" id="paga100"> 
                     </div>
                     
                     <div class="form-group checkbox-group">
@@ -193,14 +198,10 @@
         const NOMBRE_ELLA = 'Flor';
         const MESES = [ "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" ];
 
-        // *******************************************************************
-        // ********** LISTA DE ANIMACIONES (SOLO UN GIF SOLICITADO) **********
-        // *******************************************************************
+        // Lista de Animaciones
         const ANIMACIONES_GASTO = [
-            // Versión estable del GIF proporcionado:
-            "https://media.giphy.com/media/94EQmVHkveNck/giphy.gif" 
+            "https://media.giphy.com/media/94EQmVHkveNck/giphy.gif" // El GIF que elegiste
         ];
-        // *******************************************************************
 
         const transaccionList = document.getElementById('transaccion-list');
         const transaccionForm = document.getElementById('transaccion-form');
@@ -213,6 +214,7 @@
         const filtroMesSelect = document.getElementById('filtro-mes');
         const mesActualDisplay = document.getElementById('mes-actual-display');
         const esCuotaCheckbox = document.getElementById('esCuota');
+        const paga100Checkbox = document.getElementById('paga100'); // NUEVA VARIABLE
         const cuotasFieldsDiv = document.getElementById('cuotas-fields');
         const cuotasPendientesInput = document.getElementById('cuotasPendientes');
 
@@ -220,7 +222,6 @@
         // --- FUNCIÓN DE FORMATO Y MONTO AUTOMÁTICO ---
         function formatCurrency(number) {
             if (isNaN(number)) return '';
-            // Formato de pesos argentinos sin decimales
             return Math.round(number).toLocaleString('es-AR', { minimumFractionDigits: 0 });
         }
 
@@ -242,19 +243,16 @@
         // --- ANIMACIÓN ---
 
         function renderizarAnimacion() {
-            // 1. Escoger el GIF (solo hay uno)
             const gifAleatorio = ANIMACIONES_GASTO[Math.floor(Math.random() * ANIMACIONES_GASTO.length)];
             animacionGif.src = gifAleatorio;
 
-            // 2. Mostrar contenedor
             formContent.style.display = 'none';
             animacionContainer.style.display = 'block';
 
             setTimeout(() => {
-                // 3. Ocultar y restablecer
                 animacionContainer.style.display = 'none';
                 formContent.style.display = 'block';
-            }, 3000); // Ocultar después de 3 segundos
+            }, 3000);
         }
 
 
@@ -280,7 +278,6 @@
             try {
                 const transaccionABorrar = transacciones.find(t => t.id === transaccionId);
                 
-                // 1. GUARDAR REGISTRO DE AUDITORÍA
                 const registroAuditoria = {
                     eliminadoPor: 'Usuario Desconocido (Nahu/Flor)', 
                     fechaEliminacion: new Date().toISOString(),
@@ -288,10 +285,8 @@
                 };
                 await db.collection('registros_borrados').add(registroAuditoria); 
 
-                // 2. ELIMINAR LA TRANSACCIÓN ORIGINAL
                 await db.collection(COLLECTION_NAME).doc(transaccionId).delete();
                 
-                // 3. RECARGAR VISTA
                 await cargarTransacciones();
                 
                 alert("Gasto eliminado correctamente.");
@@ -302,7 +297,7 @@
             }
         }
 
-        // --- CÁLCULO MENSUAL ---
+        // --- CÁLCULO MENSUAL (ACTUALIZADO PARA 100%) ---
 
         function calcularSaldoNetoTotal(transaccionArray) {
             let nahuDeboAFlor = 0;
@@ -321,11 +316,13 @@
             });
 
             transaccionesFiltradas.forEach(t => {
-                const mitadMonto = t.monto / 2;
+                // LÓGICA DE DEUDA: Si paga100 es true, la deuda es el monto total, sino es la mitad.
+                const montoADeber = t.paga100 ? t.monto : t.monto / 2;
+
                 if (t.pagador === NOMBRE_YO) { // Nahu pagó
-                    florDebeANahu += mitadMonto;
+                    florDebeANahu += montoADeber;
                 } else { // Flor pagó
-                    nahuDeboAFlor += mitadMonto;
+                    nahuDeboAFlor += montoADeber;
                 }
             });
 
@@ -342,12 +339,10 @@
             const mesActual = now.getMonth();
             const anioActual = now.getFullYear();
             
-            // 1. Agregar meses del año actual hasta el mes en curso
             for (let m = 0; m <= mesActual; m++) { 
                  mesesUnicos.add(`${m}-${anioActual}`);
             }
 
-            // 2. Recopilar meses únicos de las transacciones (añadirá meses de años pasados si existen)
             transacciones.forEach(t => {
                 if (t.fecha && t.fecha.toDate) {
                     const date = t.fecha.toDate();
@@ -356,13 +351,12 @@
                 }
             });
 
-            // 3. Ordenar y poblar el <select>
             const mesesOrdenados = Array.from(mesesUnicos)
                 .map(ma => {
                     const [m, a] = ma.split('-').map(Number);
                     return { mes: m, anio: a, value: ma, label: `${MESES[m]} ${a}` };
                 })
-                .sort((a, b) => a.anio - b.anio || a.mes - b.mes); // ORDEN ASCENDENTE (Enero primero)
+                .sort((a, b) => a.anio - b.anio || a.mes - b.mes);
 
             const selectedValue = filtroMesSelect.value;
             filtroMesSelect.innerHTML = '';
@@ -388,14 +382,13 @@
                 if (currentOption) {
                     currentOption.selected = true;
                 } else if (mesesOrdenados.length > 0) {
-                    // Selecciona el más reciente (último elemento en orden ascendente)
                     filtroMesSelect.value = mesesOrdenados[mesesOrdenados.length - 1].value; 
                 }
             }
         }
 
 
-        // --- RENDERIZADO DE LA VISTA ---
+        // --- RENDERIZADO DE LA VISTA (ACTUALIZADO PARA 100%) ---
 
         function renderizarTransacciones() {
             populateMonthFilter();
@@ -429,7 +422,9 @@
             }
 
             transaccionesFiltradas.forEach(t => {
-                const mitadMonto = t.monto / 2;
+                // Cálculo de monto a deber para la vista
+                const montoADeber = t.paga100 ? t.monto : t.monto / 2;
+                
                 let deudor, pagador;
                 let montoClase = '';
 
@@ -447,17 +442,22 @@
 
                 const fecha = t.fecha.toDate ? t.fecha.toDate().toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : 'N/A';
                 const cuotasInfo = t.esCuota ? ` (${t.cuotasPendientes} cuota${t.cuotasPendientes !== 1 ? 's' : ''} restantes)` : '';
+                
+                // Texto de detalle modificado
+                const debeTexto = t.paga100 ? 
+                    `${deudor} debe el TOTAL.` : 
+                    `${deudor} debe su mitad.`;
 
                 const item = document.createElement('li');
                 item.className = 'transaccion-item';
                 item.innerHTML = `
                     <div class="info">
                         <strong>${t.descripcion}</strong>
-                        <p class="detalle">${pagador} pagó el total ($${formatCurrency(t.monto)}). ${deudor} debe su mitad.</p>
+                        <p class="detalle">${pagador} pagó el total ($${formatCurrency(t.monto)}). ${debeTexto}</p>
                         <p class="detalle">${fecha}${cuotasInfo}</p>
                     </div>
                     <div class="monto-container">
-                        <span class="monto ${montoClase}">$${formatCurrency(mitadMonto)}</span>
+                        <span class="monto ${montoClase}">$${formatCurrency(montoADeber)}</span>
                         <button class="btn-delete" data-id="${t.id}" title="Eliminar Transacción">&#x2715;</button>
                     </div>
                 `;
@@ -475,6 +475,7 @@
             const descripcion = document.getElementById('descripcion').value.trim();
             const pagador = document.getElementById('pagador').value;
             const esCuota = esCuotaCheckbox.checked;
+            const paga100 = paga100Checkbox.checked; // OBTENIENDO NUEVO VALOR
             const cuotasPendientes = esCuota ? parseInt(cuotasPendientesInput.value, 10) : 1;
             
             if (isNaN(monto) || monto <= 0 || !descripcion) {
@@ -491,6 +492,7 @@
                 descripcion: descripcion,
                 pagador: pagador,
                 esCuota: esCuota,
+                paga100: paga100, // GUARDANDO NUEVO VALOR
                 cuotasPendientes: cuotasPendientes,
                 fecha: firebase.firestore.FieldValue.serverTimestamp()
             };
