@@ -64,7 +64,6 @@
             display: flex; 
             align-items: center; 
             gap: 10px; 
-            /* En móvil, los checkboxes van en su propia fila. */
             grid-column: 1 / 2; 
         }
         .checkbox-group label { margin-bottom: 0; flex-grow: 1; }
@@ -120,9 +119,6 @@
                 grid-template-columns: 1fr 1fr; 
                 gap: 20px;
             } 
-            
-            /* En desktop, los checkboxes vuelven a la fila que comparten */
-            .checkbox-group { grid-column: auto; }
             
             /* Estos elementos ocupan 2 columnas en Desktop */
             .form-group.select-group { grid-column: 1 / 3; }
@@ -198,15 +194,15 @@
                     </div>
                     
                     <div class="form-group checkbox-group">
-                        <label for="esCuota">Cuotas</label>
+                        <label for="esCuota">¿A Cuotas?</label>
                         <input type="checkbox" id="esCuota"> 
                     </div>
 
                     <div id="cuotas-fields" style="display: none; padding: 10px; border: 1px dashed #ddd; border-radius: 8px;">
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label for="cuotasPendientes">Cuotas restantes (incluyendo la actual):</label>
-                            <input type="number" id="cuotasPendientes" min="1" value="1" placeholder="Ej: 3">
-                            <small style="color: var(--color-subtle);">Este es el número de veces que se agregará la deuda.</small>
+                            <label for="cuotasPendientes">Cuotas totales:</label>
+                            <input type="number" id="cuotasPendientes" min="1" value="1" placeholder="Ej: 4">
+                            <small style="color: var(--color-subtle);">Este es el número de meses en que se agregará la deuda.</small>
                         </div>
                     </div>
 
@@ -345,8 +341,25 @@
                 alert("¡Error! No se pudo eliminar la transacción. Asegúrate que las Reglas de Firebase están bien publicadas.");
             }
         }
+        
+        // Helper para determinar los meses que abarca una transacción a cuotas.
+        function getCuotaMonths(startDate, totalCuotas) {
+            const months = [];
+            // Date object from Timestamp
+            let date = startDate.toDate();
+            for (let i = 0; i < totalCuotas; i++) {
+                // Clonar la fecha y avanzar 'i' meses
+                let cuotaDate = new Date(date.getFullYear(), date.getMonth() + i, 1);
+                months.push({
+                    mesAnio: `${cuotaDate.getMonth()}-${cuotaDate.getFullYear()}`,
+                    cuotaIndex: i
+                });
+            }
+            return months;
+        }
 
-        // --- CÁLCULO MENSUAL ---
+
+        // --- CÁLCULO MENSUAL (ACTUALIZADO PARA CUOTAS) ---
 
         function calcularSaldoNetoTotal(transaccionArray) {
             let nahuDeboAFlor = 0;
@@ -355,23 +368,54 @@
             if (!filtroMesSelect.value) return { saldoNeto: 0, nahuDeboAFlor: 0, florDebeANahu: 0, transaccionesFiltradas: [] };
 
             const [mesSeleccionadoIndex, anioSeleccionado] = filtroMesSelect.value.split('-');
+            const mesAnioSeleccionado = `${mesSeleccionadoIndex}-${anioSeleccionado}`;
 
-            const transaccionesFiltradas = transaccionArray.filter(t => {
-                if (!t.fecha || !t.fecha.toDate) return false;
+            let transaccionesFiltradas = [];
+
+            transaccionArray.forEach(t => {
                 const fechaTransaccion = t.fecha.toDate();
-                const mesTransaccion = fechaTransaccion.getMonth().toString();
-                const anioTransaccion = fechaTransaccion.getFullYear().toString();
-                return mesTransaccion === mesSeleccionadoIndex && anioTransaccion === anioSeleccionado;
-            });
+                const mesAnioTransaccion = `${fechaTransaccion.getMonth()}-${fechaTransaccion.getFullYear()}`;
+                
+                // Si la transacción es una CUOTA
+                if (t.esCuota) {
+                    const totalCuotas = t.cuotasPendientes;
+                    const installmentMonths = getCuotaMonths(t.fecha, totalCuotas);
+                    
+                    // Buscar si el mes seleccionado está en el calendario de cuotas
+                    const cuotaMatch = installmentMonths.find(m => m.mesAnio === mesAnioSeleccionado);
+                    
+                    if (cuotaMatch) {
+                        // Es una cuota pendiente en el mes seleccionado
+                        const montoCuotaMensual = t.monto / totalCuotas;
+                        const montoADeber = t.paga100 ? montoCuotaMensual : montoCuotaMensual / 2;
 
-            transaccionesFiltradas.forEach(t => {
-                // LÓGICA DE DEUDA: Si paga100 es true, la deuda es el monto total, sino es la mitad.
-                const montoADeber = t.paga100 ? t.monto : t.monto / 2;
+                        if (t.pagador === NOMBRE_YO) {
+                            florDebeANahu += montoADeber;
+                        } else {
+                            nahuDeboAFlor += montoADeber;
+                        }
 
-                if (t.pagador === NOMBRE_YO) { // Nahu pagó
-                    florDebeANahu += montoADeber;
-                } else { // Flor pagó
-                    nahuDeboAFlor += montoADeber;
+                        // Agregar a la lista filtrada, sobrescribiendo el monto y agregando detalles de cuota
+                        transaccionesFiltradas.push({
+                            ...t,
+                            monto: montoCuotaMensual, // Monto de la cuota mensual
+                            detalleCuota: `Cuota ${cuotaMatch.cuotaIndex + 1} de ${totalCuotas}` 
+                        });
+                    }
+
+                } else {
+                    // Si la transacción NO es una cuota (se registra toda en un mes)
+                    if (mesAnioTransaccion === mesAnioSeleccionado) {
+                        const montoADeber = t.paga100 ? t.monto : t.monto / 2;
+
+                        if (t.pagador === NOMBRE_YO) {
+                            florDebeANahu += montoADeber;
+                        } else {
+                            nahuDeboAFlor += montoADeber;
+                        }
+                        
+                        transaccionesFiltradas.push(t);
+                    }
                 }
             });
 
@@ -388,15 +432,25 @@
             const mesActual = now.getMonth();
             const anioActual = now.getFullYear();
             
+            // 1. Agregar meses del año actual hasta el mes en curso
             for (let m = 0; m <= mesActual; m++) { 
                  mesesUnicos.add(`${m}-${anioActual}`);
             }
 
+            // 2. Recopilar meses de las transacciones, incluyendo futuras cuotas
             transacciones.forEach(t => {
                 if (t.fecha && t.fecha.toDate) {
-                    const date = t.fecha.toDate();
-                    const mesAnio = `${date.getMonth()}-${date.getFullYear()}`;
-                    mesesUnicos.add(mesAnio);
+                    // Si es cuota, agregar todos los meses futuros de las cuotas
+                    if (t.esCuota && t.cuotasPendientes) {
+                        const totalCuotas = t.cuotasPendientes;
+                        const installmentMonths = getCuotaMonths(t.fecha, totalCuotas);
+                        installmentMonths.forEach(m => mesesUnicos.add(m.mesAnio));
+                    } else {
+                        // Transacción regular
+                        const date = t.fecha.toDate();
+                        const mesAnio = `${date.getMonth()}-${date.getFullYear()}`;
+                        mesesUnicos.add(mesAnio);
+                    }
                 }
             });
 
@@ -437,7 +491,7 @@
         }
 
 
-        // --- RENDERIZADO DE LA VISTA ---
+        // --- RENDERIZADO DE LA VISTA (ACTUALIZADO PARA CUOTAS) ---
 
         function renderizarTransacciones() {
             populateMonthFilter();
@@ -471,6 +525,7 @@
             }
 
             transaccionesFiltradas.forEach(t => {
+                // Monto a deber mensual
                 const montoADeber = t.paga100 ? t.monto : t.monto / 2;
                 
                 let deudor, pagador;
@@ -489,19 +544,32 @@
                 if (filtro !== 'total' && deudor !== filtro) return;
 
                 const fecha = t.fecha.toDate ? t.fecha.toDate().toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : 'N/A';
-                const cuotasInfo = t.esCuota ? ` (${t.cuotasPendientes} cuota${t.cuotasPendientes !== 1 ? 's' : ''} restantes)` : '';
                 
-                const debeTexto = t.paga100 ? 
-                    `${deudor} debe el TOTAL (Gasto Individual).` : 
-                    `${deudor} debe su mitad.`;
+                // Lógica de texto para la vista
+                let detailLine1;
+                let detailLine2;
+                
+                const esIndividual = t.paga100;
+                const porcentajeTexto = esIndividual ? 'el TOTAL' : 'su mitad';
+
+                if (t.detalleCuota) {
+                    // Si es una cuota, t.monto ya es el monto mensual de la cuota
+                    const montoTotalCompra = t.monto * t.cuotasPendientes;
+                    detailLine1 = `${pagador} pagó la compra total de $${formatCurrency(montoTotalCompra)}.`;
+                    detailLine2 = `${t.detalleCuota} | ${deudor} debe ${porcentajeTexto}. | Gasto original: ${fecha}`;
+                } else {
+                    // Transacción regular
+                    detailLine1 = `${pagador} pagó el total ($${formatCurrency(t.monto)}). ${deudor} debe ${porcentajeTexto}.`;
+                    detailLine2 = `Gasto registrado: ${fecha}`;
+                }
 
                 const item = document.createElement('li');
                 item.className = 'transaccion-item';
                 item.innerHTML = `
                     <div class="info">
                         <strong>${t.descripcion}</strong>
-                        <p class="detalle">${pagador} pagó el total ($${formatCurrency(t.monto)}). ${debeTexto}</p>
-                        <p class="detalle">${fecha}${cuotasInfo}</p>
+                        <p class="detalle">${detailLine1}</p>
+                        <p class="detalle">${detailLine2}</p>
                     </div>
                     <div class="monto-container">
                         <span class="monto ${montoClase}">$${formatCurrency(montoADeber)}</span>
@@ -523,14 +591,18 @@
             const pagador = document.getElementById('pagador').value;
             const esCuota = esCuotaCheckbox.checked;
             const paga100 = paga100Checkbox.checked; 
-            const cuotasPendientes = esCuota ? parseInt(cuotasPendientesInput.value, 10) : 1;
+            
+            let cuotasPendientes = 1;
+            if (esCuota) {
+                cuotasPendientes = parseInt(cuotasPendientesInput.value, 10);
+                if (isNaN(cuotasPendientes) || cuotasPendientes <= 0) {
+                    alert("Por favor, ingresa un número de cuotas totales válido.");
+                    return;
+                }
+            }
             
             if (isNaN(monto) || monto <= 0 || !descripcion) {
                 alert("Por favor, ingresa un monto válido y una descripción.");
-                return;
-            }
-            if (esCuota && (isNaN(cuotasPendientes) || cuotasPendientes <= 0)) {
-                alert("Por favor, ingresa un número de cuotas restantes válido.");
                 return;
             }
 
@@ -582,4 +654,3 @@
     </script>
 </body>
 </html>
-
