@@ -201,24 +201,10 @@
         const MESES = [ "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" ];
 
         // *******************************************************************
-        // ********** LISTA DE 15 ANIMACIONES ALEATORIAS DE GASTO ************
+        // ********** LISTA DE ANIMACIONES (SOLO UN GIF SOLICITADO) **********
         // *******************************************************************
         const ANIMACIONES_GASTO = [
-            "https://media.giphy.com/media/l41YwV0YVpB59C8uI/giphy.gif", // 1. Bolsillos vacíos (clásico)
-            "https://media.giphy.com/media/xT0BKGj9rG5YF9Wwms/giphy.gif", // 2. Perro gastando mucho dinero
-            "https://media.giphy.com/media/3o7aDgfC1mC3fLwBtm/giphy.gif", // 3. Pingüino pobre
-            "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExaGlodW96aWlmamZrNGl1Z2JpNG9rNDZ2bnE4bnJsZDMycTJoa3MycyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/94EQmVHkveNck/giphy.gif", // 4. GIF solicitado (Sin dinero)
-            "https://media.giphy.com/media/l2JdVRN0n8eI381kA/giphy.gif", // 5. Tirando dinero a lo loco
-            "https://media.giphy.com/media/Q8OOs4eGhtTTe/giphy.gif", // 6. Hombre mostrando billetera vacía
-            "https://media.giphy.com/media/SgM3k3zB9Ie7S/giphy.gif", // 7. Bob Esponja llorando por el dinero
-            "https://media.giphy.com/media/l4pM0qj2t4V39s1kA/giphy.gif", // 8. Caricatura de hombre sin dinero
-            "https://media.giphy.com/media/l4FGp6wY9xQd4OmtO/giphy.gif", // 9. Dinero desapareciendo
-            "https://media.giphy.com/media/3o7TKuyl0Q5x5334Gc/giphy.gif", // 10. Chico de oficina estresado
-            "https://media.giphy.com/media/3o7TKwB0R6P2UoV5fG/giphy.gif", // 11. Mano apretando las últimas monedas
-            "https://media.giphy.com/media/3o7aTCD8QUV8yOqXTO/giphy.gif", // 12. Pennywise (It) haciendo un gesto de dinero
-            "https://media.giphy.com/media/l41K3o5T3Ua5p0e3K/giphy.gif", // 13. Caricatura de billetera vacía
-            "https://media.giphy.com/media/26hir9eW2r0E6e4sU/giphy.gif", // 14. Dinero volando lejos
-            "https://media.giphy.com/media/jV0k0Fp02nQfVf0g0K/giphy.gif"  // 15. Homer Simpson estresado
+            "https://media.giphy.com/media/94EQmVHkveNck/giphy.gif" // GIF de "sin dinero"
         ];
         // *******************************************************************
 
@@ -259,10 +245,10 @@
             cuotasPendientesInput.required = this.checked;
         });
 
-        // --- ANIMACIÓN AL AZAR ---
+        // --- ANIMACIÓN AL AZAR (AHORA SIEMPRE SERÁ EL MISMO) ---
 
         function renderizarAnimacion() {
-            // 1. Escoger un GIF al azar
+            // 1. Escoger el GIF (solo hay uno)
             const gifAleatorio = ANIMACIONES_GASTO[Math.floor(Math.random() * ANIMACIONES_GASTO.length)];
             animacionGif.src = gifAleatorio;
 
