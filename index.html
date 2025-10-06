@@ -109,12 +109,12 @@
                 
                 <div class="form-group">
                     <label for="monto">Monto Total del Gasto:</label>
-                    <input type="text" id="monto" inputmode="numeric" required placeholder="Ej: 10.000"> 
+                    <input type="text" id="monto" inputmode="numeric" required placeholder="Ej: $10.000"> 
                 </div>
 
                 <div class="form-group">
                     <label for="descripcion">Concepto:</label>
-                    <input type="text" id="descripcion" required placeholder="Ej: Vuelo a Roma (Cuota 1)">
+                    <input type="text" id="descripcion" required placeholder="Ej: Vuelo Bariloche">
                 </div>
                 
                 <div class="form-group select-group">
@@ -250,5 +250,6 @@
             let florDebeANahu = 0;
             
             if (!filtroMesSelect.value) return { saldoNeto: 0, nahuDeboAFlor: 0, florDebeANahu: 0 };
+
 
             const [mesSeleccionadoIndex,
