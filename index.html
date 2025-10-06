@@ -56,6 +56,28 @@
         .monto.flor-debe { color: var(--color-pago); background-color: #f0fff0; }
         .btn-delete { background: none; border: none; color: var(--color-subtle); cursor: pointer; font-size: 1.1em; padding: 5px; margin-right: -10px; transition: color 0.2s; opacity: 0; pointer-events: none; }
         .transaccion-item:hover .btn-delete { opacity: 1; color: var(--color-cobro); pointer-events: auto; }
+
+        /* --- Estilos para la Animación --- */
+        #animacion-container {
+            display: none; /* Oculto por defecto */
+            text-align: center;
+            padding: 40px 10px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: var(--sombra-suave);
+            transition: opacity 0.3s;
+        }
+        #animacion-container h3 {
+            color: var(--color-cobro); /* Rojo */
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+        #animacion-gif {
+            width: 100%;
+            max-width: 250px;
+            height: auto;
+            border-radius: 8px;
+        }
         
         @media (min-width: 768px) {
             main { grid-template-columns: 2fr 1fr; }
@@ -104,42 +126,50 @@
     <main>
         
         <section class="registro-container card">
-            <h3>Nueva Transacción</h3> 
-            <form id="transaccion-form">
-                
-                <div class="form-group">
-                    <label for="monto">Monto Total del Gasto:</label>
-                    <input type="text" id="monto" inputmode="numeric" required placeholder="Ej: $10.000"> 
-                </div>
-
-                <div class="form-group">
-                    <label for="descripcion">Concepto:</label>
-                    <input type="text" id="descripcion" required placeholder="Ej: Vuelo Bariloche">
-                </div>
-                
-                <div class="form-group select-group">
-                    <label for="pagador">¿Quién pagó el gasto?</label>
-                    <select id="pagador" required>
-                        <option value="Nahu">Nahu</option>
-                        <option value="Flor">Flor</option>
-                    </select>
-                </div>
-                
-                <div class="form-group checkbox-group">
-                    <label for="esCuota">¿Es un gasto a Cuotas?</label>
-                    <input type="checkbox" id="esCuota"> 
-                </div>
-
-                <div id="cuotas-fields" style="display: none; grid-column: 1 / 3; padding: 10px; border: 1px dashed #ddd; border-radius: 8px;">
-                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="cuotasPendientes">Cuotas restantes (incluyendo la actual):</label>
-                        <input type="number" id="cuotasPendientes" min="1" value="1" placeholder="Ej: 3">
-                        <small style="color: var(--color-subtle);">Este es el número de veces que se agregará la deuda.</small>
+            <div id="form-content">
+                <h3>Nueva Transacción</h3> 
+                <form id="transaccion-form">
+                    
+                    <div class="form-group">
+                        <label for="monto">Monto Total del Gasto:</label>
+                        <input type="text" id="monto" inputmode="numeric" required placeholder="Ej: $10.000"> 
                     </div>
-                </div>
 
-                <button type="submit" class="btn-agregar">Guardar y Calcular</button>
-            </form>
+                    <div class="form-group">
+                        <label for="descripcion">Concepto:</label>
+                        <input type="text" id="descripcion" required placeholder="Ej: Vuelo Bariloche">
+                    </div>
+                    
+                    <div class="form-group select-group">
+                        <label for="pagador">¿Quién pagó el gasto?</label>
+                        <select id="pagador" required>
+                            <option value="Nahu">Nahu</option>
+                            <option value="Flor">Flor</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group checkbox-group">
+                        <label for="esCuota">¿Es un gasto a Cuotas?</label>
+                        <input type="checkbox" id="esCuota"> 
+                    </div>
+
+                    <div id="cuotas-fields" style="display: none; grid-column: 1 / 3; padding: 10px; border: 1px dashed #ddd; border-radius: 8px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="cuotasPendientes">Cuotas restantes (incluyendo la actual):</label>
+                            <input type="number" id="cuotasPendientes" min="1" value="1" placeholder="Ej: 3">
+                            <small style="color: var(--color-subtle);">Este es el número de veces que se agregará la deuda.</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-agregar">Guardar y Calcular</button>
+                </form>
+            </div>
+
+            <div id="animacion-container">
+                <h3>¡Adiós, dinero!</h3>
+                <img id="animacion-gif" src="https://i.giphy.com/media/l41YwV0YVpB59C8uI/giphy.webp" alt="Personaje mostrando bolsillos vacíos" title="Bolsillos vacíos - Gasto registrado">
+                <p style="margin-top: 20px; color: var(--color-subtle); font-style: italic;">Gasto registrado correctamente.</p>
+            </div>
         </section>
         
         <section class="historial-container card">
@@ -172,6 +202,8 @@
 
         const transaccionList = document.getElementById('transaccion-list');
         const transaccionForm = document.getElementById('transaccion-form');
+        const formContent = document.getElementById('form-content');
+        const animacionContainer = document.getElementById('animacion-container');
         const filtroDeudasSelect = document.getElementById('filtro-deudas');
         const saldoNetoInfo = document.getElementById('saldo-neto-info');
         const montoInput = document.getElementById('monto'); 
@@ -205,6 +237,18 @@
             cuotasFieldsDiv.style.display = this.checked ? 'block' : 'none';
             cuotasPendientesInput.required = this.checked;
         });
+
+        // --- ANIMACIÓN ---
+
+        function renderizarAnimacion() {
+            formContent.style.display = 'none';
+            animacionContainer.style.display = 'block';
+
+            setTimeout(() => {
+                animacionContainer.style.display = 'none';
+                formContent.style.display = 'block';
+            }, 3000); // Ocultar después de 3 segundos
+        }
 
 
         // --- FUNCIONES DE FIREBASE Y LÓGICA DE BORRADO ---
@@ -286,7 +330,7 @@
             return { saldoNeto, nahuDeboAFlor, florDebeANahu, transaccionesFiltradas };
         }
 
-        // --- MANEJO DE FILTRO DE MESES (CORREGIDO) ---
+        // --- MANEJO DE FILTRO DE MESES (ASCENDENTE) ---
 
         function populateMonthFilter() {
             const mesesUnicos = new Set();
@@ -294,13 +338,12 @@
             const mesActual = now.getMonth();
             const anioActual = now.getFullYear();
             
-            // ********* CORRECCIÓN AQUÍ: AGREGAR TODOS LOS MESES DEL AÑO ACTUAL *********
-            for (let m = 0; m <= mesActual; m++) { // Solo meses hasta el actual (o m < 12 para todos)
+            // 1. Agregar meses del año actual hasta el mes en curso
+            for (let m = 0; m <= mesActual; m++) { 
                  mesesUnicos.add(`${m}-${anioActual}`);
             }
-            // Si quieres ver TODO el año, usa: for (let m = 0; m < 12; m++)
 
-            // 1. Recopilar meses únicos de las transacciones (añadirá meses de años pasados si existen)
+            // 2. Recopilar meses únicos de las transacciones (añadirá meses de años pasados si existen)
             transacciones.forEach(t => {
                 if (t.fecha && t.fecha.toDate) {
                     const date = t.fecha.toDate();
@@ -309,13 +352,13 @@
                 }
             });
 
-            // 2. Ordenar y poblar el <select>
+            // 3. Ordenar y poblar el <select>
             const mesesOrdenados = Array.from(mesesUnicos)
                 .map(ma => {
                     const [m, a] = ma.split('-').map(Number);
                     return { mes: m, anio: a, value: ma, label: `${MESES[m]} ${a}` };
                 })
-                .sort((a, b) => b.anio - a.anio || b.mes - a.mes); // Orden descendente: Año luego Mes
+                .sort((a, b) => a.anio - b.anio || a.mes - b.mes); // ORDEN ASCENDENTE (a - b)
 
             // Guardar el valor seleccionado antes de limpiar
             const selectedValue = filtroMesSelect.value;
@@ -343,8 +386,8 @@
                 if (currentOption) {
                     currentOption.selected = true;
                 } else if (mesesOrdenados.length > 0) {
-                    // Si el mes actual no tiene transacciones, selecciona el más reciente
-                    filtroMesSelect.value = mesesOrdenados[0].value;
+                    // Selecciona el más reciente (último elemento en orden ascendente)
+                    filtroMesSelect.value = mesesOrdenados[mesesOrdenados.length - 1].value; 
                 }
             }
         }
@@ -353,7 +396,7 @@
         // --- RENDERIZADO DE LA VISTA ---
 
         function renderizarTransacciones() {
-            // 1. Popula el filtro de meses (ahora incluye todos los meses del año actual)
+            // 1. Popula el filtro de meses
             populateMonthFilter();
             
             // 2. Obtiene los saldos del mes seleccionado
@@ -427,7 +470,7 @@
             });
         }
         
-        // --- MANEJO DEL FORMULARIO ---
+        // --- MANEJO DEL FORMULARIO (MODIFICADO PARA LA ANIMACIÓN) ---
 
         transaccionForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -467,8 +510,14 @@
                 montoInput.value = ''; // Limpiar el valor con formato
                 cuotasFieldsDiv.style.display = 'none'; // Ocultar campo de cuotas
                 
-                alert("Transacción guardada con éxito!");
-                await cargarTransacciones(); // Recargar datos y renderizar
+                // **Mostrar la animación**
+                renderizarAnimacion();
+
+                // Recargar datos después de que termine la animación
+                setTimeout(async () => {
+                    await cargarTransacciones(); 
+                }, 3000);
+
             } catch (error) {
                 console.error("Error al añadir la transacción: ", error);
                 alert("¡Error! No se pudo guardar la transacción.");
