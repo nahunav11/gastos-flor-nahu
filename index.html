@@ -62,15 +62,10 @@
             display: none; /* Oculto por defecto */
             text-align: center;
             padding: 40px 10px;
-            background: #fff;
+            background: var(--color-tarjeta); /* Usamos el color de la tarjeta para que se vea limpio */
             border-radius: 12px;
             box-shadow: var(--sombra-suave);
             transition: opacity 0.3s;
-        }
-        #animacion-container h3 {
-            color: var(--color-cobro); /* Rojo */
-            font-size: 1.8em;
-            margin-bottom: 15px;
         }
         #animacion-gif {
             width: 100%;
@@ -166,9 +161,7 @@
             </div>
 
             <div id="animacion-container">
-                <h3>¡Adiós, dinero!</h3>
                 <img id="animacion-gif" src="" alt="Animación de gasto registrado" title="Animación de gasto">
-                <p style="margin-top: 20px; color: var(--color-subtle); font-style: italic;">Gasto registrado correctamente.</p>
             </div>
         </section>
         
@@ -204,7 +197,8 @@
         // ********** LISTA DE ANIMACIONES (SOLO UN GIF SOLICITADO) **********
         // *******************************************************************
         const ANIMACIONES_GASTO = [
-            "https://media.giphy.com/media/94EQmVHkveNck/giphy.gif" // GIF de "sin dinero"
+            // Versión estable del GIF proporcionado:
+            "https://media.giphy.com/media/94EQmVHkveNck/giphy.gif" 
         ];
         // *******************************************************************
 
@@ -245,7 +239,7 @@
             cuotasPendientesInput.required = this.checked;
         });
 
-        // --- ANIMACIÓN AL AZAR (AHORA SIEMPRE SERÁ EL MISMO) ---
+        // --- ANIMACIÓN ---
 
         function renderizarAnimacion() {
             // 1. Escoger el GIF (solo hay uno)
