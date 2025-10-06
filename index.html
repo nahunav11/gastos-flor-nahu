@@ -9,7 +9,7 @@
     <style>
         :root {
             --color-principal: #333; --color-fondo: #f9f9f9; --color-tarjeta: #ffffff;
-            --color-borde: #ddd; --color-subtle: #6c757d; --color-pago: #118c4e; --color-cobro: #dc3545;
+            --color-borde: #ddd; --color-subtle: #6c757d; --color-pago: #118c4e; /* Verde */ --color-cobro: #dc3545; /* Rojo */
             --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.08); --transicion-rapida: 0.2s ease-out; --transicion-lenta: 0.4s ease-in-out;
         }
         @keyframes fadeInSlide { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -42,8 +42,8 @@
         .mes-actual-display { font-size: 0.85em; color: var(--color-subtle); font-weight: 600; text-transform: uppercase; }
         #filtro-deudas { width: 100%; max-width: 300px; padding: 10px; font-weight: 600; }
         .saldo-neto-info { font-size: 1.1em; font-weight: 600; padding: 12px; margin-bottom: 15px; border-radius: 8px; text-align: center; width: 100%; transition: background-color 0.5s; }
-        .debe-a-flornahu { color: var(--color-cobro); background-color: #f7e6e8; }
-        .deben-a-flornahu { color: var(--color-pago); background-color: #e6f7ef; }
+        .nahu-debe { color: var(--color-cobro); background-color: #f7e6e8; } /* Nahu debe a Flor (Rojo) */
+        .flor-debe { color: var(--color-pago); background-color: #e6f7ef; } /* Flor debe a Nahu (Verde) */
         .a-mano { color: var(--color-principal); background-color: #f0f0f0; }
         .transaccion-list { list-style: none; padding: 0; }
         .transaccion-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; transition: background-color var(--transicion-rapida); }
@@ -133,8 +133,8 @@
                 <div id="cuotas-fields" style="display: none; grid-column: 1 / 3; padding: 10px; border: 1px dashed #ddd; border-radius: 8px;">
                      <div class="form-group" style="margin-bottom: 0;">
                         <label for="cuotasPendientes">Cuotas restantes (incluyendo la actual):</label>
-                        <input type="number" id="cuotasPendientes" min="1" value="1" placeholder="Ej: 3" required>
-                        <small>Este es el número de veces que se agregará la deuda.</small>
+                        <input type="number" id="cuotasPendientes" min="1" value="1" placeholder="Ej: 3">
+                        <small style="color: var(--color-subtle);">Este es el número de veces que se agregará la deuda.</small>
                     </div>
                 </div>
 
@@ -185,10 +185,12 @@
         // --- FUNCIÓN DE FORMATO Y MONTO AUTOMÁTICO ---
         function formatCurrency(number) {
             if (isNaN(number)) return '';
+            // Formato de pesos argentinos sin decimales
             return Math.round(number).toLocaleString('es-AR', { minimumFractionDigits: 0 });
         }
 
         montoInput.addEventListener('input', function() {
+            // Eliminar todos los puntos y caracteres no numéricos
             let rawValue = this.value.replace(/\./g, '').replace(/[^0-9]/g, ''); 
             if (rawValue) {
                 let number = parseInt(rawValue, 10);
@@ -197,12 +199,19 @@
                 this.value = '';
             }
         });
+        
+        // Manejar visibilidad del campo de cuotas
+        esCuotaCheckbox.addEventListener('change', function() {
+            cuotasFieldsDiv.style.display = this.checked ? 'block' : 'none';
+            cuotasPendientesInput.required = this.checked;
+        });
 
 
         // --- FUNCIONES DE FIREBASE Y LÓGICA DE BORRADO ---
 
         async function cargarTransacciones() {
             try {
+                // Traer transacciones ordenadas por fecha descendente
                 const snapshot = await db.collection(COLLECTION_NAME).orderBy('fecha', 'desc').get();
                 transacciones = snapshot.docs.map(doc => ({
                     id: doc.id, 
@@ -249,7 +258,239 @@
             let nahuDeboAFlor = 0;
             let florDebeANahu = 0;
             
-            if (!filtroMesSelect.value) return { saldoNeto: 0, nahuDeboAFlor: 0, florDebeANahu: 0 };
+            if (!filtroMesSelect.value) return { saldoNeto: 0, nahuDeboAFlor: 0, florDebeANahu: 0, transaccionesFiltradas: [] };
+
+            const [mesSeleccionadoIndex, anioSeleccionado] = filtroMesSelect.value.split('-');
+
+            // Filtrar transacciones por el mes y año seleccionado
+            const transaccionesFiltradas = transaccionArray.filter(t => {
+                if (!t.fecha || !t.fecha.toDate) return false; // Ignorar si no tiene fecha válida
+                const fechaTransaccion = t.fecha.toDate();
+                const mesTransaccion = fechaTransaccion.getMonth().toString();
+                const anioTransaccion = fechaTransaccion.getFullYear().toString();
+                return mesTransaccion === mesSeleccionadoIndex && anioTransaccion === anioSeleccionado;
+            });
+
+            transaccionesFiltradas.forEach(t => {
+                const mitadMonto = t.monto / 2;
+                if (t.pagador === NOMBRE_YO) { // Nahu pagó
+                    florDebeANahu += mitadMonto;
+                } else { // Flor pagó
+                    nahuDeboAFlor += mitadMonto;
+                }
+            });
+
+            // Saldo Neto: Positivo si Flor debe a Nahu, Negativo si Nahu debe a Flor
+            const saldoNeto = florDebeANahu - nahuDeboAFlor;
+
+            return { saldoNeto, nahuDeboAFlor, florDebeANahu, transaccionesFiltradas };
+        }
+
+        // --- MANEJO DE FILTRO DE MESES ---
+
+        function populateMonthFilter() {
+            const mesesUnicos = new Set();
+            const now = new Date();
+            const mesActual = now.getMonth();
+            const anioActual = now.getFullYear();
+
+            // 1. Recopilar meses únicos de las transacciones
+            transacciones.forEach(t => {
+                if (t.fecha && t.fecha.toDate) {
+                    const date = t.fecha.toDate();
+                    const mesAnio = `${date.getMonth()}-${date.getFullYear()}`;
+                    mesesUnicos.add(mesAnio);
+                }
+            });
+
+            // Si no hay transacciones, añadir el mes actual (para tener un valor por defecto)
+            if (mesesUnicos.size === 0) {
+                mesesUnicos.add(`${mesActual}-${anioActual}`);
+            }
+
+            // 2. Ordenar y poblar el <select>
+            const mesesOrdenados = Array.from(mesesUnicos)
+                .map(ma => {
+                    const [m, a] = ma.split('-').map(Number);
+                    return { mes: m, anio: a, value: ma, label: `${MESES[m]} ${a}` };
+                })
+                .sort((a, b) => b.anio - a.anio || b.mes - a.mes); // Orden descendente: Año luego Mes
+
+            // Guardar el valor seleccionado antes de limpiar
+            const selectedValue = filtroMesSelect.value;
+            filtroMesSelect.innerHTML = '';
+            
+            let isMonthSelected = false;
+
+            mesesOrdenados.forEach(mesObj => {
+                const option = document.createElement('option');
+                option.value = mesObj.value;
+                option.textContent = mesObj.label;
+                
+                if (selectedValue === mesObj.value) {
+                    option.selected = true;
+                    isMonthSelected = true;
+                }
+                
+                filtroMesSelect.appendChild(option);
+            });
+            
+            // Si no se seleccionó el valor anterior, seleccionar el mes actual por defecto
+            if (!isMonthSelected) {
+                const currentMonthValue = `${mesActual}-${anioActual}`;
+                const currentOption = filtroMesSelect.querySelector(`option[value="${currentMonthValue}"]`);
+                if (currentOption) {
+                    currentOption.selected = true;
+                } else if (mesesOrdenados.length > 0) {
+                    // Si el mes actual no tiene transacciones, selecciona el más reciente
+                    filtroMesSelect.value = mesesOrdenados[0].value;
+                }
+            }
+        }
 
 
-            const [mesSeleccionadoIndex,
+        // --- RENDERIZADO DE LA VISTA ---
+
+        function renderizarTransacciones() {
+            // 1. Popula el filtro de meses (lo hará automáticamente el mes más reciente)
+            populateMonthFilter();
+            
+            // 2. Obtiene los saldos del mes seleccionado
+            const { saldoNeto, transaccionesFiltradas } = calcularSaldoNetoTotal(transacciones);
+
+            // 3. Actualiza el Mes en la vista
+            mesActualDisplay.textContent = MESES[filtroMesSelect.value.split('-')[0]] + ' ' + filtroMesSelect.value.split('-')[1];
+
+            // 4. Actualiza el Saldo Neto General
+            let mensajeSaldo;
+            saldoNetoInfo.className = 'saldo-neto-info';
+            
+            if (saldoNeto > 0) { // Flor debe a Nahu (Neto Positivo)
+                mensajeSaldo = `${NOMBRE_ELLA} le debe a ${NOMBRE_YO}: $${formatCurrency(saldoNeto)}`;
+                saldoNetoInfo.classList.add('flor-debe');
+            } else if (saldoNeto < 0) { // Nahu debe a Flor (Neto Negativo)
+                mensajeSaldo = `${NOMBRE_YO} le debe a ${NOMBRE_ELLA}: $${formatCurrency(Math.abs(saldoNeto))}`;
+                saldoNetoInfo.classList.add('nahu-debe');
+            } else { // Están a mano
+                mensajeSaldo = "¡Están a mano!";
+                saldoNetoInfo.classList.add('a-mano');
+            }
+            saldoNetoInfo.textContent = mensajeSaldo;
+
+            // 5. Muestra la lista de transacciones filtradas
+
+            transaccionList.innerHTML = ''; // Limpiar la lista
+            const filtro = filtroDeudasSelect.value;
+
+            if (transaccionesFiltradas.length === 0) {
+                transaccionList.innerHTML = `<li style="text-align: center; color: var(--color-subtle); padding: 20px;">No hay gastos registrados para este mes.</li>`;
+                return;
+            }
+
+            transaccionesFiltradas.forEach(t => {
+                const mitadMonto = t.monto / 2;
+                let deudor, pagador;
+                let montoClase = '';
+
+                if (t.pagador === NOMBRE_YO) { // Nahu pagó
+                    deudor = NOMBRE_ELLA;
+                    pagador = NOMBRE_YO;
+                    montoClase = 'flor-debe'; // Flor debe a Nahu (Verde)
+                } else { // Flor pagó
+                    deudor = NOMBRE_YO;
+                    pagador = NOMBRE_ELLA;
+                    montoClase = 'nahu-debe'; // Nahu debe a Flor (Rojo)
+                }
+
+                // Filtrado de lista por deudor
+                if (filtro !== 'total' && deudor !== filtro) return;
+
+                const fecha = t.fecha.toDate ? t.fecha.toDate().toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : 'N/A';
+                const cuotasInfo = t.esCuota ? ` (${t.cuotasPendientes} cuota${t.cuotasPendientes !== 1 ? 's' : ''} restantes)` : '';
+
+                const item = document.createElement('li');
+                item.className = 'transaccion-item';
+                item.innerHTML = `
+                    <div class="info">
+                        <strong>${t.descripcion}</strong>
+                        <p class="detalle">${pagador} pagó el total ($${formatCurrency(t.monto)}). ${deudor} debe su mitad.</p>
+                        <p class="detalle">${fecha}${cuotasInfo}</p>
+                    </div>
+                    <div class="monto-container">
+                        <span class="monto ${montoClase}">$${formatCurrency(mitadMonto)}</span>
+                        <button class="btn-delete" data-id="${t.id}" title="Eliminar Transacción">&#x2715;</button>
+                    </div>
+                `;
+                transaccionList.appendChild(item);
+            });
+        }
+        
+        // --- MANEJO DEL FORMULARIO ---
+
+        transaccionForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Quitar formato para obtener el número entero
+            const rawMonto = document.getElementById('monto').value.replace(/\./g, '').replace(/[^0-9]/g, '');
+            const monto = parseInt(rawMonto, 10);
+            const descripcion = document.getElementById('descripcion').value.trim();
+            const pagador = document.getElementById('pagador').value;
+            const esCuota = esCuotaCheckbox.checked;
+            const cuotasPendientes = esCuota ? parseInt(cuotasPendientesInput.value, 10) : 1;
+            
+            if (isNaN(monto) || monto <= 0 || !descripcion) {
+                alert("Por favor, ingresa un monto válido y una descripción.");
+                return;
+            }
+            if (esCuota && (isNaN(cuotasPendientes) || cuotasPendientes <= 0)) {
+                alert("Por favor, ingresa un número de cuotas restantes válido.");
+                return;
+            }
+
+            const nuevaTransaccion = {
+                monto: monto,
+                descripcion: descripcion,
+                pagador: pagador,
+                esCuota: esCuota,
+                cuotasPendientes: cuotasPendientes,
+                fecha: firebase.firestore.FieldValue.serverTimestamp() // Usar fecha del servidor
+            };
+
+            try {
+                // Guardar en Firebase
+                await db.collection(COLLECTION_NAME).add(nuevaTransaccion);
+                
+                // Limpiar formulario y vista
+                transaccionForm.reset();
+                montoInput.value = ''; // Limpiar el valor con formato
+                cuotasFieldsDiv.style.display = 'none'; // Ocultar campo de cuotas
+                
+                alert("Transacción guardada con éxito!");
+                await cargarTransacciones(); // Recargar datos y renderizar
+            } catch (error) {
+                console.error("Error al añadir la transacción: ", error);
+                alert("¡Error! No se pudo guardar la transacción.");
+            }
+        });
+        
+        // --- LISTENERS GENERALES ---
+        
+        // Listener para delegación de eventos de borrado
+        transaccionList.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('btn-delete')) {
+                const id = e.target.getAttribute('data-id');
+                if (id) borrarTransaccion(id);
+            }
+        });
+
+        // Listeners para filtros
+        filtroDeudasSelect.addEventListener('change', renderizarTransacciones);
+        filtroMesSelect.addEventListener('change', renderizarTransacciones);
+
+        // Inicialización
+        cargarTransacciones();
+        
+        // --- FIN DEL CÓDIGO JAVASCRIPT ---
+    </script>
+</body>
+</html>
