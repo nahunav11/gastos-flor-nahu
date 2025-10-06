@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Gastos Flor & Nahu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --color-principal: #333; --color-fondo: #f9f9f9; --color-tarjeta: #ffffff;
+            --color-borde: #ddd; --color-subtle: #6c757d; --color-pago: #118c4e; --color-cobro: #dc3545;
+            --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.08); --transicion-rapida: 0.2s ease-out; --transicion-lenta: 0.4s ease-in-out;
+        }
+        @keyframes fadeInSlide { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--color-fondo); color: var(--color-principal); line-height: 1.6; padding: 20px; min-height: 100vh; }
+        header { text-align: center; padding: 30px 0; margin-bottom: 30px; }
+        h1 { color: var(--color-principal); font-size: 2.5em; font-weight: 700; margin-bottom: 0; }
+        h2 { color: var(--color-principal); font-size: 1.4em; font-weight: 400; margin-top: 5px; opacity: 0.8; }
+        h3 { color: var(--color-principal); font-size: 1.4em; font-weight: 600; margin-bottom: 20px; }
+        main { max-width: 1000px; margin: 0 auto; display: grid; gap: 25px; grid-template-columns: 1fr; }
+        .card { background: var(--color-tarjeta); border-radius: 12px; padding: 25px; box-shadow: var(--sombra-suave); transition: box-shadow var(--transicion-rapida); animation: fadeInSlide 0.5s var(--transicion-lenta) forwards; opacity: 0; }
+        .registro-container { animation-delay: 0.1s; }
+        .historial-container { animation-delay: 0.2s; }
+        .card:hover { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1); }
+        #transaccion-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 5px; font-weight: 400; color: var(--color-principal); font-size: 0.9em; }
+        input, select { padding: 10px; border: 1px solid var(--color-borde); border-radius: 6px; font-size: 1em; color: var(--color-principal); transition: border-color var(--transicion-rapida); }
+        input:focus, select:focus { border-color: var(--color-principal); outline: none; box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.05); }
+        .btn-agregar { grid-column: 1 / 3; padding: 12px; background-color: var(--color-principal); color: white; border: none; border-radius: 8px; font-size: 1.05em; font-weight: 600; cursor: pointer; transition: background-color var(--transicion-rapida), transform 0.1s; }
+        .btn-agregar:hover { background-color: #555; transform: translateY(-2px); box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; }
+        .checkbox-group label { margin-bottom: 0; flex-grow: 1; }
+        .checkbox-group input[type="checkbox"] { width: 20px !important; height: 20px; margin: 0; cursor: pointer; }
+        .menu-meses-container { margin-top: 20px; text-align: center; }
+        .label-mes { font-weight: 600; color: var(--color-principal); margin-right: 10px; }
+        #filtro-mes { padding: 8px 15px; border: 1px solid var(--color-principal); border-radius: 6px; font-size: 1em; font-weight: 500; color: var(--color-principal); background-color: var(--color-tarjeta); transition: all var(--transicion-rapida); }
+        .menu-deudas-header { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 20px; }
+        .menu-deudas-header h3 { text-align: center; margin-bottom: 0; }
+        .mes-actual-display { font-size: 0.85em; color: var(--color-subtle); font-weight: 600; text-transform: uppercase; }
+        #filtro-deudas { width: 100%; max-width: 300px; padding: 10px; font-weight: 600; }
+        .saldo-neto-info { font-size: 1.1em; font-weight: 600; padding: 12px; margin-bottom: 15px; border-radius: 8px; text-align: center; width: 100%; transition: background-color 0.5s; }
+        .debe-a-flornahu { color: var(--color-cobro); background-color: #f7e6e8; }
+        .deben-a-flornahu { color: var(--color-pago); background-color: #e6f7ef; }
+        .a-mano { color: var(--color-principal); background-color: #f0f0f0; }
+        .transaccion-list { list-style: none; padding: 0; }
+        .transaccion-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; transition: background-color var(--transicion-rapida); }
+        .transaccion-item:hover { background-color: #fafafa; }
+        .info { flex-grow: 1; }
+        .detalle { font-size: 0.85em; color: var(--color-subtle); }
+        .monto-container { display: flex; align-items: center; gap: 10px; }
+        .monto { font-weight: 700; font-size: 1.1em; padding: 5px 8px; border-radius: 5px; margin-left: 10px; transition: all var(--transicion-rapida); }
+        .monto.nahu-debe { color: var(--color-cobro); background-color: #fef5f5; }
+        .monto.flor-debe { color: var(--color-pago); background-color: #f0fff0; }
+        .btn-delete { background: none; border: none; color: var(--color-subtle); cursor: pointer; font-size: 1.1em; padding: 5px; margin-right: -10px; transition: color 0.2s; opacity: 0; pointer-events: none; }
+        .transaccion-item:hover .btn-delete { opacity: 1; color: var(--color-cobro); pointer-events: auto; }
+        
+        @media (min-width: 768px) {
+            main { grid-template-columns: 2fr 1fr; }
+            .registro-container { grid-column: 2 / 3; grid-row: 1 / 3; }
+            .historial-container { grid-column: 1 / 2; grid-row: 1 / 3; }
+            #transaccion-form { grid-template-columns: 1fr; gap: 20px; }
+            .btn-agregar { grid-column: 1 / 2; }
+            .menu-deudas-header { flex-direction: column; align-items: center; }
+            #filtro-deudas { width: 250px; }
+        }
+    </style>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // *** VALORES DE TU CONSOLA DE FIREBASE ***
+        const firebaseConfig = {
+          apiKey: "AIzaSyAY7CTfzbNy7l5f7nG3xrscrB-D-ehjW4Y",
+          authDomain: "gastos-flor-nahu.firebaseapp.com",
+          projectId: "gastos-flor-nahu",
+          storageBucket: "gastos-flor-nahu.firebasestorage.app",
+          messagingSenderId: "805147651129",
+          appId: "1:805147651129:web:e4ce55657949d7010b31e8",
+          measurementId: "G-8NFN60K20Z"
+        };
+        
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const COLLECTION_NAME = "transacciones_flornahu";
+    </script>
+</head>
+<body>
+
+    <header>
+        <h1>Control de Gastos</h1>
+        <h2>Flor y Nahu</h2>
+        
+        <div class="menu-meses-container">
+            <label for="filtro-mes" class="label-mes">Seleccionar Mes:</label>
+            <select id="filtro-mes"></select>
+        </div>
+        
+    </header>
+
+    <main>
+        
+        <section class="registro-container card">
+            <h3>Nueva Transacción</h3> 
+            <form id="transaccion-form">
+                
+                <div class="form-group">
+                    <label for="monto">Monto Total del Gasto:</label>
+                    <input type="text" id="monto" inputmode="numeric" required placeholder="Ej: 10.000"> 
+                </div>
+
+                <div class="form-group">
+                    <label for="descripcion">Concepto:</label>
+                    <input type="text" id="descripcion" required placeholder="Ej: Vuelo a Roma (Cuota 1)">
+                </div>
+                
+                <div class="form-group select-group">
+                    <label for="pagador">¿Quién pagó el gasto?</label>
+                    <select id="pagador" required>
+                        <option value="Nahu">Nahu</option>
+                        <option value="Flor">Flor</option>
+                    </select>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label for="esCuota">¿Es un gasto a Cuotas?</label>
+                    <input type="checkbox" id="esCuota"> 
+                </div>
+
+                <div id="cuotas-fields" style="display: none; grid-column: 1 / 3; padding: 10px; border: 1px dashed #ddd; border-radius: 8px;">
+                     <div class="form-group" style="margin-bottom: 0;">
+                        <label for="cuotasPendientes">Cuotas restantes (incluyendo la actual):</label>
+                        <input type="number" id="cuotasPendientes" min="1" value="1" placeholder="Ej: 3" required>
+                        <small>Este es el número de veces que se agregará la deuda.</small>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-agregar">Guardar y Calcular</button>
+            </form>
+        </section>
+        
+        <section class="historial-container card">
+            
+            <div class="menu-deudas-header">
+                <h3>Deudas Pendientes</h3>
+                <small id="mes-actual-display" class="mes-actual-display"></small>
+                
+                <select id="filtro-deudas">
+                    <option value="total">Balance Neto (Total)</option>
+                    <option value="Flor">Deudas de Flor a Nahu</option>
+                    <option value="Nahu">Deudas de Nahu a Flor</option>
+                </select>
+            </div>
+
+            <p id="saldo-neto-info" class="saldo-neto-info"></p>
+
+            <ul id="transaccion-list" class="transaccion-list">
+                </ul>
+        </section>
+
+    </main>
+
+    <script>
+        // --- COMIENZO DEL CÓDIGO JAVASCRIPT ---
+        let transacciones = []; 
+        const NOMBRE_YO = 'Nahu';
+        const NOMBRE_ELLA = 'Flor';
+        const MESES = [ "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" ];
+
+        const transaccionList = document.getElementById('transaccion-list');
+        const transaccionForm = document.getElementById('transaccion-form');
+        const filtroDeudasSelect = document.getElementById('filtro-deudas');
+        const saldoNetoInfo = document.getElementById('saldo-neto-info');
+        const montoInput = document.getElementById('monto'); 
+        const filtroMesSelect = document.getElementById('filtro-mes');
+        const mesActualDisplay = document.getElementById('mes-actual-display');
+        const esCuotaCheckbox = document.getElementById('esCuota');
+        const cuotasFieldsDiv = document.getElementById('cuotas-fields');
+        const cuotasPendientesInput = document.getElementById('cuotasPendientes');
+
+
+        // --- FUNCIÓN DE FORMATO Y MONTO AUTOMÁTICO ---
+        function formatCurrency(number) {
+            if (isNaN(number)) return '';
+            return Math.round(number).toLocaleString('es-AR', { minimumFractionDigits: 0 });
+        }
+
+        montoInput.addEventListener('input', function() {
+            let rawValue = this.value.replace(/\./g, '').replace(/[^0-9]/g, ''); 
+            if (rawValue) {
+                let number = parseInt(rawValue, 10);
+                this.value = formatCurrency(number);
+            } else {
+                this.value = '';
+            }
+        });
+
+
+        // --- FUNCIONES DE FIREBASE Y LÓGICA DE BORRADO ---
+
+        async function cargarTransacciones() {
+            try {
+                const snapshot = await db.collection(COLLECTION_NAME).orderBy('fecha', 'desc').get();
+                transacciones = snapshot.docs.map(doc => ({
+                    id: doc.id, 
+                    ...doc.data()
+                }));
+                renderizarTransacciones(); 
+            } catch (error) {
+                console.error("Error al cargar las transacciones: ", error);
+            }
+        }
+
+        async function borrarTransaccion(transaccionId) {
+            const confirmacion = confirm("¿Estás seguro de que quieres eliminar este gasto? Se guardará un registro de auditoría.");
+            if (!confirmacion) return;
+
+            try {
+                const transaccionABorrar = transacciones.find(t => t.id === transaccionId);
+                
+                // 1. GUARDAR REGISTRO DE AUDITORÍA (En colección 'escondida')
+                const registroAuditoria = {
+                    eliminadoPor: 'Usuario Desconocido (Nahu/Flor)', 
+                    fechaEliminacion: new Date().toISOString(),
+                    transaccionBorrada: transaccionABorrar
+                };
+                await db.collection('registros_borrados').add(registroAuditoria); 
+
+                // 2. ELIMINAR LA TRANSACCIÓN ORIGINAL
+                await db.collection(COLLECTION_NAME).doc(transaccionId).delete();
+                
+                // 3. RECARGAR VISTA
+                await cargarTransacciones();
+                
+                alert("Gasto eliminado correctamente.");
+
+            } catch (error) {
+                console.error("Error al borrar la transacción: ", error);
+                alert("¡Error! No se pudo eliminar la transacción. Asegúrate que las Reglas de Firebase están bien publicadas.");
+            }
+        }
+
+        // --- CÁLCULO MENSUAL (CON GESTIÓN DE CUOTAS) ---
+
+        function calcularSaldoNetoTotal(transaccionArray) {
+            let nahuDeboAFlor = 0;
+            let florDebeANahu = 0;
+            
+            if (!filtroMesSelect.value) return { saldoNeto: 0, nahuDeboAFlor: 0, florDebeANahu: 0 };
+
+            const [mesSeleccionadoIndex,
