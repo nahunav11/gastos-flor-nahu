@@ -286,15 +286,21 @@
             return { saldoNeto, nahuDeboAFlor, florDebeANahu, transaccionesFiltradas };
         }
 
-        // --- MANEJO DE FILTRO DE MESES ---
+        // --- MANEJO DE FILTRO DE MESES (CORREGIDO) ---
 
         function populateMonthFilter() {
             const mesesUnicos = new Set();
             const now = new Date();
             const mesActual = now.getMonth();
             const anioActual = now.getFullYear();
+            
+            // ********* CORRECCIÓN AQUÍ: AGREGAR TODOS LOS MESES DEL AÑO ACTUAL *********
+            for (let m = 0; m <= mesActual; m++) { // Solo meses hasta el actual (o m < 12 para todos)
+                 mesesUnicos.add(`${m}-${anioActual}`);
+            }
+            // Si quieres ver TODO el año, usa: for (let m = 0; m < 12; m++)
 
-            // 1. Recopilar meses únicos de las transacciones
+            // 1. Recopilar meses únicos de las transacciones (añadirá meses de años pasados si existen)
             transacciones.forEach(t => {
                 if (t.fecha && t.fecha.toDate) {
                     const date = t.fecha.toDate();
@@ -302,11 +308,6 @@
                     mesesUnicos.add(mesAnio);
                 }
             });
-
-            // Si no hay transacciones, añadir el mes actual (para tener un valor por defecto)
-            if (mesesUnicos.size === 0) {
-                mesesUnicos.add(`${mesActual}-${anioActual}`);
-            }
 
             // 2. Ordenar y poblar el <select>
             const mesesOrdenados = Array.from(mesesUnicos)
@@ -352,14 +353,15 @@
         // --- RENDERIZADO DE LA VISTA ---
 
         function renderizarTransacciones() {
-            // 1. Popula el filtro de meses (lo hará automáticamente el mes más reciente)
+            // 1. Popula el filtro de meses (ahora incluye todos los meses del año actual)
             populateMonthFilter();
             
             // 2. Obtiene los saldos del mes seleccionado
             const { saldoNeto, transaccionesFiltradas } = calcularSaldoNetoTotal(transacciones);
 
             // 3. Actualiza el Mes en la vista
-            mesActualDisplay.textContent = MESES[filtroMesSelect.value.split('-')[0]] + ' ' + filtroMesSelect.value.split('-')[1];
+            const [mesIndex, anio] = filtroMesSelect.value.split('-');
+            mesActualDisplay.textContent = MESES[parseInt(mesIndex)] + ' ' + anio;
 
             // 4. Actualiza el Saldo Neto General
             let mensajeSaldo;
